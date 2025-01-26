@@ -1,0 +1,62 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart Example</title>
+    <!-- Include ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+</head>
+<body>
+    <div id="chart"></div> <!-- Placeholder for the chart -->
+
+    <script>
+        async function renderChart() {
+          // Fetch the data from your .NET controller
+          const response = await fetch('/api/SSAS/executeQuery', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mdxQuery:"SELECT  ([Calender].[Year].&[2011-01-01T00:00:00] : [Calender].[Year].&[2014-01-01T00:00:00]) ON COLUMNS,    [Measures].[Line Total] ON ROWS FROM [BI DB DS] "
+            })
+          });
+
+          const result = await response.json();
+
+          // Process the result to fit ApexCharts data structure
+          const categories = result.columns; // Years for X-axis
+          const series = result.data.map(row => ({
+            name: row.RowHeader, // E.g., Company name
+            data: categories.map(col => parseFloat(row[col] || 0)) // Values for each year
+          }));
+
+          // Render the chart
+          const options = {
+            chart: {
+              type: 'bar',
+              height: 350
+            },
+            series: series,
+            xaxis: {
+              categories: categories // Year labels
+            },
+            title: {
+              text: 'Line Total by Year and Company',
+              align: 'center'
+            },
+            tooltip: {
+              y: {
+                formatter: val => val.toLocaleString() // Format numbers
+              }
+            }
+          };
+
+          const chart = new ApexCharts(document.querySelector("#chart"), options);
+          chart.render();
+        }
+
+        // Call the function to render the chart
+        renderChart();
+    </script>
+</body>
+</html>
