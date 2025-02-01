@@ -2,7 +2,7 @@
 
 namespace WebApplicationTestingCube.Controllers
 {
-    [Route("home")]
+    [Route("")]
     public class HomeController : Controller
     {
     

@@ -108,9 +108,7 @@ namespace WebApplicationTestingCube.Controllers
                 }
             }
         }
-        /// <summary>
-        /// Executes a predefined MDX query (Query 1) and returns the result.
-        /// </summary>
+    
         [HttpGet("execute/query/1")]
         public IActionResult ExecuteQueryOne()
         {
@@ -118,9 +116,7 @@ namespace WebApplicationTestingCube.Controllers
             return ExecuteQuery(new QueryRequest { MdxQuery = mdxQuery });
         }
 
-        /// <summary>
-        /// Executes a predefined MDX query (Query 2) and returns the result.
-        /// </summary>
+   
         [HttpGet("execute/query/2")]
         public IActionResult ExecuteQueryTwo()
         {
@@ -129,15 +125,21 @@ namespace WebApplicationTestingCube.Controllers
         }
 
 
-        /// <summary>
-        /// Executes a predefined MDX query (Query 2) and returns the result.
-        /// </summary>
         [HttpGet("execute/query/3")]
         public IActionResult ExecuteQueryThree()
         {
             var mdxQuery = "SELECT     [Sales Territory].[Territory].[Territory].MEMBERS ON COLUMNS,   ([Calender].[Year].&[2013-01-01T00:00:00], [Measures].[Line Total]) ON ROWS FROM [BI DB DS]\r\n";
             return ExecuteQueryForMap(new QueryRequest { MdxQuery = mdxQuery });
         }
+
+
+        [HttpGet("execute/query/4")]
+        public IActionResult ExecuteQueryFour()
+        {
+            var mdxQuery = "SELECT   NON EMPTY  TopCount([Product].[Product].[Product].MEMBERS, 10, [Measures].[AverageLineTotal]) ON COLUMNS, NON EMPTY    [Measures].[AverageLineTotal] ON ROWS FROM [BI DB DS]";
+            return ExecuteQuery(new QueryRequest { MdxQuery = mdxQuery });
+        }
+
 
         public class QueryRequest
         {
