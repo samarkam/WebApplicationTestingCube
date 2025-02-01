@@ -4,59 +4,144 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chart Example</title>
-    <!-- Include ApexCharts -->
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+ 
+
+
+    <style>
+        #map { height: 400px; } /* Adjust the height of the map */
+    </style>
 </head>
-<body>
-    <div id="chart"></div> <!-- Placeholder for the chart -->
+<body class="container-fluid">
+    <div id="chart"></div> <!-- Placeholder for the first chart -->
+    <div id="chart2"></div> <!-- Placeholder for the second chart -->
+    <div id="map"></div> <!-- Placeholder for the geographic chart -->
 
     <script>
-        async function renderChart() {
-          // Fetch the data from your .NET controller
-          const response = await fetch('/api/SSAS/executeQuery', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              mdxQuery:"SELECT  ([Calender].[Year].&[2011-01-01T00:00:00] : [Calender].[Year].&[2014-01-01T00:00:00]) ON COLUMNS,    [Measures].[Line Total] ON ROWS FROM [BI DB DS] "
-            })
-          });
+        // Function to render the first chart
+        async function renderFirstChart() {
+            const response = await fetch('/api/SSAS/execute/query/1');
+            const result = await response.json();
 
-          const result = await response.json();
+            const categories = result.columns;
+            const series = result.data.map(row => ({
+                name: row.RowHeader,
+                data: categories.map(col => parseFloat(row[col] || 0))
+            }));
 
-          // Process the result to fit ApexCharts data structure
-          const categories = result.columns; // Years for X-axis
-          const series = result.data.map(row => ({
-            name: row.RowHeader, // E.g., Company name
-            data: categories.map(col => parseFloat(row[col] || 0)) // Values for each year
-          }));
+            const options = {
+                chart: { type: 'bar', height: 350 },
+                series: series,
+                xaxis: { categories: categories },
+                title: { text: 'Line Total by Year', align: 'center' },
+                tooltip: { y: { formatter: val => val.toLocaleString() } }
+            };
 
-          // Render the chart
-          const options = {
-            chart: {
-              type: 'bar',
-              height: 350
-            },
-            series: series,
-            xaxis: {
-              categories: categories // Year labels
-            },
-            title: {
-              text: 'Line Total by Year and Company',
-              align: 'center'
-            },
-            tooltip: {
-              y: {
-                formatter: val => val.toLocaleString() // Format numbers
-              }
-            }
-          };
-
-          const chart = new ApexCharts(document.querySelector("#chart"), options);
-          chart.render();
+            new ApexCharts(document.querySelector("#chart"), options).render();
         }
 
-        // Call the function to render the chart
-        renderChart();
+        // Function to render the second chart
+        async function renderSecondChart() {
+            const response = await fetch('/api/SSAS/execute/query/2');
+            const result = await response.json();
+
+            const rawMonths = result.columns;
+            const rawData = result.data[0];
+
+            const monthOrder = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
+
+            const uniqueMonths = [...new Set(rawMonths.map(item => item.split(' ')[0]))];
+            const sortedMonths = uniqueMonths.sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b));
+            const uniqueYears = [...new Set(rawMonths.map(item => item.split(' ')[1]))];
+
+            const dataByYear = uniqueYears.map(year => ({
+                name: year,
+                data: sortedMonths.map(month => parseFloat(rawData[`${month} ${year}`] || 0))
+            }));
+
+            const options = {
+                chart: { type: 'line', height: 350 },
+                series: dataByYear,
+                xaxis: { categories: sortedMonths },
+                title: { text: 'Parallel Line Total by Month and Year', align: 'center' },
+                tooltip: { y: { formatter: val => val.toLocaleString() } }
+            };
+
+            new ApexCharts(document.querySelector("#chart2"), options).render();
+        }
+
+        // Render all charts
+        renderFirstChart();
+        renderSecondChart();
+
+
+
+         
+        // Assuming your data has latitude and longitude for each region
+        const regionCoordinates = {
+            'Northwest': { lat: 47.6062, lng: -122.3321 }, // Example coordinates (replace with actual data)
+            'Northeast': { lat: 40.7128, lng: -74.0060 },
+            'Central': { lat: 39.7392, lng: -104.9903 },
+            'Southwest': { lat: 33.4484, lng: -112.0740 },
+            'Southeast': { lat: 25.7617, lng: -80.1918 },
+            'Canada': { lat: 45.4215, lng: -75.6972 },
+            'France': { lat: 48.8566, lng: 2.3522 },
+            'Germany': { lat: 51.1657, lng: 10.4515 },
+            'Australia': { lat: -33.8688, lng: 151.2093 },
+            'United Kingdom': { lat: 51.5074, lng: -0.1278 },
+            'Unknown': { lat: 0, lng: 0 }
+        };
+         function convertData(originalData)
+        {
+            const columns = Object.keys(originalData.data[0]).filter(key => key !== 'RowHeader');
+            const transformedData = originalData.data.map(row => {
+            const rowData = { RowHeader: row.RowHeader };
+            columns.forEach(column => {
+                    rowData[column] = row[column];
+                });
+                return rowData;
+            });
+
+        return { columns, data: transformedData };
+        }
+        async function renderMap() {
+            const response = await fetch('/api/SSAS/execute/query/3');
+            const result = await response.json();
+            const map = L.map('map').setView([51.505, -0.09], 2); // Center the map
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            const data =convertData(result);
+
+            const markers = [];
+
+            // Loop through the data and add markers
+            data.columns.forEach(column => {
+                const value = data.data[0][column];
+                const coordinates = regionCoordinates[column];
+
+                // Check if coordinates exist for the region
+                if (coordinates && coordinates.lat && coordinates.lng && value !== null) {
+                    const marker = L.marker([coordinates.lat, coordinates.lng]).addTo(map);
+                    marker.bindPopup(`<b>${column}</b><br>Line Total: ${value}`);
+                    markers.push(marker);
+                }
+            });
+
+            // Fit map to markers
+            if (markers.length > 0) {
+                const group = new L.featureGroup(markers);
+                map.fitBounds(group.getBounds());
+            }
+        }
+
+        renderMap();
+    
     </script>
 </body>
 </html>

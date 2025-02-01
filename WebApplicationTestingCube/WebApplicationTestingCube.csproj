@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BootstrapMvc.Bootstrap3" Version="2.7.0" />
     <PackageReference Include="Microsoft.AnalysisServices.AdomdClient" Version="19.87.7" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.3.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
